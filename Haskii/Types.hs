@@ -58,6 +58,14 @@ class Sliceable t where
     drop :: Int -> t -> t
     length :: t -> Int
 
+-- | When working with lists, which element should be used by the Paddable instance.
+-- | Basically a hack to work around OverlappingInstances.
+class Transparent t where
+    transparent :: t
+
+instance Transparent Char where
+    transparent = ' '
+
 -- | A datatype for which we know how to generate padding of a given length.
 class Sliceable t => Paddable t where
     padding :: Int -> t
@@ -67,8 +75,8 @@ instance Sliceable [t] where
     drop = Prelude.drop
     length = Prelude.length
 
-instance Monoid t => Paddable [t] where
-    padding = flip Prelude.replicate mempty
+instance Transparent t => Paddable [t] where
+    padding = flip Prelude.replicate transparent
 
 instance IsString t => IsString (Render t) where
     fromString = return . fromString

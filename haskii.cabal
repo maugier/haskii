@@ -56,7 +56,7 @@ library
   exposed-modules:     Haskii, Haskii.Text, Haskii.Rainbow, Haskii.Types
   
   -- Modules included in this library but not exported.
-  other-modules:       Haskii.Internal, Haskii.Internal.RangeMap
+  other-modules:       Haskii.Internal.RangeMap
   
   -- LANGUAGE extensions used by modules in this package.
   other-extensions:    OverloadedStrings, FlexibleInstances, GeneralizedNewtypeDeriving

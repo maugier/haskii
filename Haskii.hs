@@ -13,24 +13,30 @@ The main, backend-agnostig Haskii module
 -}
 
 module Haskii
-    ( Render()
+    (
+	-- * The Render monad 
+	Render()
     , move
+    , drawAt
+    , oneOf
+    -- * Performing rendering
+    , renderChunks
+    -- * Drawing primitives
     , moveDown
     , moveLeft
     , moveRight
     , moveUp
-    , drawAt
     , centered
-    , oneOf
     , line
     ) where
 
 import Control.Monad.Writer
 import Control.Applicative
 import Data.Monoid
+import qualified Data.IntMap as IM
 import Data.String
 import Haskii.Types
-import Haskii.Internal
+import Haskii.Internal.RangeMap (pad)
 import Prelude hiding (length)
 
 -- | Move the cursor location by a relative location
@@ -39,13 +45,15 @@ move :: (Int,Int) -- ^ A (y,x) pair. y is the vertical axis (pointing down), x t
 move (y,x) = Render (tell (Sum y, Sum x))
 
 -- | Shortcuts for moving along a single axis
+
 moveDown, moveRight, moveLeft, moveUp :: Int -> Render ()
 moveDown y = move (y,0)
 moveRight x = move (0,x)
 moveLeft = moveRight . negate
 moveUp = moveDown . negate
 
--- | Equivalent to 'move (y,x) >> return t'
+-- | Equivalent to
+-- > move (y,x) >> return t
 drawAt :: (Int,Int) -> t -> Render t
 drawAt (y,x) t = Render (writer (t,(Sum y,Sum x)))
 
@@ -53,8 +61,8 @@ drawAt (y,x) t = Render (writer (t,(Sum y,Sum x)))
 centered :: Sliceable t => t -> Render t
 centered t = t <$ moveLeft ((length t - 1) `div` 2)
 
--- | Combine several objects for rendering.
--- | equivalent to 'foldMap return'
+-- | Combine several objects for rendering. Equivalent to 
+-- | > foldMap return
 oneOf :: [t] -> Render t
 oneOf = foldMap return
 
@@ -77,6 +85,17 @@ drawSegment x y | y < 0  = move (x,y) >> drawSegment (-x) (-y)
                 | x == y = oneOf [1..(y-1)] >>= (\y -> move (y,y)) >> "\\"
                 | x == -y = oneOf [1..(y-1)] >>= (\y -> move (y,-y)) >> "/"
 
+
+-- | Actually performs the rendering, by slicing and padding the chunks in the Render
+-- | to output lists of contiguous chunks
+-- | >>> renderChunks $ (drawAt (3,3) "------------") <> (drawAt (3,5) "Hello") <> (drawAt (1,1) "test")
+-- | [[" ","test"],[],["   ","--","Hello","-----"]]
+renderChunks :: Paddable t => Render t -> [[t]]
+renderChunks object = paddedScreen 0 lineBuffer where
+    inputLines = [(y,[(x,r)]) | (r, (Sum y,Sum x)) <- (runWriterT.runRender) object ]
+    lineBuffer = IM.toList . IM.map pad . IM.fromListWith (++) $ inputLines
+    paddedScreen y [] = []
+    paddedScreen y ((y',l):rest) = replicate (y'-y-1) [] ++ (l : paddedScreen y' rest)
 
 {-
  -  Koch's curve demo

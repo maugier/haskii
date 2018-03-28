@@ -21,7 +21,7 @@ module Haskii.Rainbow
 
 import qualified Data.ByteString as BS
 import Data.ByteString (ByteString)
-import Haskii.Internal
+import Haskii
 import Haskii.Types
 import Lens.Simple (view, over)
 import Prelude hiding (take,drop,length)

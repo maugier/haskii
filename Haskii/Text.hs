@@ -17,7 +17,6 @@ import Data.Text (Text)
 import qualified Data.Text.Lazy as Lazy
 import qualified Data.Text.Lazy.IO as Lazy
 import Haskii
-import Haskii.Internal
 import Haskii.Types
 
 instance Sliceable Text where
@@ -36,10 +35,10 @@ multiline t = do
     drawAt (c,0) l
 
 -- | Perform the rendering operation and produce a single output
--- | suitable for printing directly
+-- | suitable for printing directly.
 render :: Render Text -> Lazy.Text
 render = Lazy.unlines . map Lazy.fromChunks . renderChunks
 
--- | Shortcut for printing the rendered output on stdout
+-- | Shortcut for printing the rendered output on stdout.
 putStrLn :: Render T.Text -> IO ()
 putStrLn = Lazy.putStrLn . render
