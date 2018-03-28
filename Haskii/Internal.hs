@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE Safe #-}
 
 module Haskii.Internal
     where

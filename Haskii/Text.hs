@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {-|
 Module      : Haskii.Text
 Description : Rendering over Data.Text

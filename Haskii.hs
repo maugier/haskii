@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Safe, OverloadedStrings #-}
 
 {-|
 Module      : Haskii

@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE Safe,FlexibleInstances #-}
 
 {-|
  - Module      : Haskii.Internal.RangeMap

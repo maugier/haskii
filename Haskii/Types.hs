@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE Safe #-}
 {-|
  - Module      : Haskii.Types
  - Description : Haskell Ascii Art
@@ -22,9 +22,24 @@ import Data.Semigroup
 
 -- | A collection of drawable objects of type `t`, with assorted 2d coordinates.
 newtype Render t = Render { runRender :: WriterT (Sum Int,Sum Int) [] t }
-    deriving (Functor, Applicative, Alternative, Monad)
 
--- | mplus combines rendering of several elements.
+instance Functor Render where
+    fmap f (Render m) = Render (fmap f m)
+
+instance Applicative Render where
+    pure = Render . pure
+    Render a <*> Render b = Render (a <*> b)
+
+instance Monad Render where
+    return = Render . return
+    Render a >>= f = Render (a >>= runRender . f)
+
+instance Alternative Render where
+    empty = Render empty
+    Render a <|> Render b = Render (a <|> b)
+
+
+-- | `mplus` combines rendering of several elements.
 instance MonadPlus Render where
     mzero = empty
     mplus = (<|>)
@@ -37,13 +52,13 @@ instance Monoid (Render t) where
     mappend = (Data.Semigroup.<>)
 
 -- | A class for List-like types, that can be efficiently cut at the start or end
--- with take or drop
+-- with take or drop.
 class Sliceable t where
     take :: Int -> t -> t
     drop :: Int -> t -> t
     length :: t -> Int
 
--- | A datatype for which we know how to generate padding of a given length
+-- | A datatype for which we know how to generate padding of a given length.
 class Sliceable t => Paddable t where
     padding :: Int -> t
 
