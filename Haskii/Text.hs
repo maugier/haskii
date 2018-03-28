@@ -16,10 +16,12 @@ instance Paddable Text where
     padding n = T.replicate n (T.singleton ' ')
 
 multiline :: Text -> Render Text
-multiline t = WriterT [ (l,(Sum n, Sum 0)) | (n,l) <- zip [0..] $ T.lines t ]
+multiline t = do
+    (c,l) <- oneOf . zip [0..] . T.lines $ t
+    drawAt (c,0) l
 
-render :: Render Text -> Text
-render = T.unlines . map T.concat . renderChunks
+render :: Render Text -> Lazy.Text
+render = Lazy.unlines . map Lazy.fromChunks . renderChunks
 
-putStrLn :: Render Text -> IO ()
-putStrLn = T.putStrLn . render
+putStrLn :: Render T.Text -> IO ()
+putStrLn = Lazy.putStrLn . render
