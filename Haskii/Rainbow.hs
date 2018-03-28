@@ -1,10 +1,14 @@
+module Haskii.Rainbow where
+
 import Data.ByteString as BS
+import Haskii.Types
+import Lens.Simple
 import Rainbow
 
 instance Sliceable a => Sliceable (Chunk a) where
-    sTake = over yarn . sTake
-    sDrop = over yarn . sDrop
-    sLength = sLength . view yarn 
+    take = over yarn . take
+    drop = over yarn . drop
+    length = length . view yarn 
 
 instance Paddable a => Paddable (Chunk a) where
     sPad = chunk . sPad 

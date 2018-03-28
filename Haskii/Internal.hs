@@ -5,14 +5,8 @@ module Haskii.Internal
 
 import Control.Monad.Writer
 import Data.IntMap as IM
-import qualified Data.List as L
-import qualified Data.Map as M
-import Data.Map (Map)
-import Data.Monoid
-import Data.Ord
 import Haskii.Internal.RangeMap
 import Haskii.Types
-import Prelude hiding (span, take, drop, length)
 
 
 renderChunks :: Paddable t => Render t -> [[t]]
