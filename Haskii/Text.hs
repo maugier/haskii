@@ -1,5 +1,3 @@
-module Haskii.Text where
-
 {-|
 Module      : Haskii.Text
 Description : Rendering over Data.Text
@@ -8,10 +6,12 @@ License     : BSD3
 Stability   : experimental
 
 Instances and helpers for rendering over Data.Text
-
 -}
 
-import Data.Text as T hiding (zip, map)
+module Haskii.Text where
+
+import qualified Data.Text as T
+import Data.Text (Text)
 import qualified Data.Text.Lazy as Lazy
 import qualified Data.Text.Lazy.IO as Lazy
 import Haskii

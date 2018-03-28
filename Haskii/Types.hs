@@ -15,6 +15,7 @@ module Haskii.Types where
 
 import Control.Applicative
 import Control.Monad.Writer
+import Control.Monad
 import Data.String
 import Data.Monoid
 import Data.Semigroup

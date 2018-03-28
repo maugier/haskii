@@ -1,12 +1,3 @@
-module Haskii.Rainbow
-    ( RenderMode
-    , color0
-    , color8
-    , color256
-    , renderWith
-    , putStrWith )
-    where
-
 {-|
 Module      : Haskii.Rainbow
 Description : Rendering over Rainbow chunks
@@ -18,6 +9,15 @@ Instances and helpers for rendering over the Chunk datatype
 provided by the 'Rainbow' module.
 
 -}
+
+module Haskii.Rainbow
+    ( RenderMode
+    , color0
+    , color8
+    , color256
+    , renderWith
+    , putStrWith )
+    where
 
 import qualified Data.ByteString as BS
 import Data.ByteString (ByteString)
