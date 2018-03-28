@@ -24,6 +24,11 @@ import Data.Semigroup
 newtype Render t = Render { runRender :: WriterT (Sum Int,Sum Int) [] t }
     deriving (Functor, Applicative, Alternative, Monad)
 
+-- | mplus combines rendering of several elements.
+instance MonadPlus Render where
+    mzero = empty
+    mplus = (<|>)
+
 instance Semigroup (Render t) where
     (<>) = (<|>)
 
