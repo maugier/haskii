@@ -1,4 +1,15 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-|
+ - Module      : Haskii.Types
+ - Description : Haskell Ascii Art
+ - Copyright   : (c) Maxime Augier, 2018
+ - License     : BSD3
+ - Maintainer  : max@xolus.net
+ - Stability   : experimental
+ -
+ - Core definitions, including the Render monad
+ -
+ - -}
 
 module Haskii.Types where
 
@@ -8,7 +19,7 @@ import Data.String
 import Data.Monoid
 import Data.Semigroup
 
--- | A collection of drawable objects of type `t`, with assorted 2d coordinates
+-- | A collection of drawable objects of type `t`, with assorted 2d coordinates.
 newtype Render t = Render { runRender :: WriterT (Sum Int,Sum Int) [] t }
     deriving (Functor, Applicative, Alternative, Monad)
 
