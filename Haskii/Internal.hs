@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module Haskii.Internal 
+module Haskii.Internal
     where
 
 import Control.Monad.Writer

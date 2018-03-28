@@ -1,6 +1,29 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Haskii where
+{-|
+Module      : Haskii
+Description : Haskell Ascii Art
+Copyright   : (c) Maxime Augier, 2018
+License     : BSD3
+Maintainer  : max@xolus.net
+Stability   : experimental
+
+The main, backend-agnostig Haskii module
+
+-}
+
+module Haskii
+    ( Render()
+    , move
+    , moveDown
+    , moveLeft
+    , moveRight
+    , moveUp
+    , drawAt
+    , centered
+    , oneOf
+    , line
+    ) where
 
 import Control.Monad.Writer
 import Control.Applicative
@@ -10,24 +33,35 @@ import Haskii.Types
 import Haskii.Internal
 import Prelude hiding (length)
 
-move :: (Int,Int) -> Render ()
+-- | Move the cursor location by a relative location
+move :: (Int,Int) -- ^ A (y,x) pair. y is the vertical axis (pointing down), x the horizontal one (pointing right)
+     -> Render ()
 move (y,x) = Render (tell (Sum y, Sum x))
 
+-- | Shortcuts for moving along a single axis
 moveDown, moveRight, moveLeft, moveUp :: Int -> Render ()
 moveDown y = move (y,0)
 moveRight x = move (0,x)
 moveLeft = moveRight . negate
 moveUp = moveDown . negate
 
+-- | Equivalent to 'move (y,x) >> return t'
 drawAt :: (Int,Int) -> t -> Render t
 drawAt (y,x) t = Render (writer (t,(Sum y,Sum x)))
 
+-- | For a single text of chunk of a known length, center it around the current location
 centered :: Sliceable t => t -> Render t
 centered t = t <$ moveLeft ((length t - 1) `div` 2)
 
+-- | Combine several objects for rendering.
+-- | equivalent to 'foldMap return'
 oneOf :: [t] -> Render t
 oneOf = foldMap return
 
+-- | Draw a path across several points.
+-- | The given coordinates are always relative to the current position.
+-- | It can only draw horizontal, vertical, or diagonal lines. It is up to the caller
+-- | to ensure that contiguous points in the list are properly aligned.
 line :: IsString t => [(Int,Int)] -> Render t
 line [] = mempty
 line [p] = "+" <$ move p

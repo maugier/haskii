@@ -11,7 +11,6 @@ import Data.Semigroup
 -- | A collection of drawable objects of type `t`, with assorted 2d coordinates
 newtype Render t = Render { runRender :: WriterT (Sum Int,Sum Int) [] t }
     deriving (Functor, Applicative, Alternative, Monad)
-    
 
 instance Semigroup (Render t) where
     (<>) = (<|>)
@@ -20,11 +19,14 @@ instance Monoid (Render t) where
     mempty = empty
     mappend = (Data.Semigroup.<>)
 
+-- | A class for List-like types, that can be efficiently cut at the start or end
+-- with take or drop
 class Sliceable t where
     take :: Int -> t -> t
     drop :: Int -> t -> t
     length :: t -> Int
 
+-- | A datatype for which we know how to generate padding of a given length
 class Sliceable t => Paddable t where
     padding :: Int -> t
 
