@@ -33,8 +33,12 @@ module Haskii
     , line
     , shadow
     , box
+    , edge
     , boxed
+    , edged
     , boundingBox
+    , atBoundingBox
+    , transparent
     ) where
 
 import Control.Monad.Writer
@@ -133,36 +137,71 @@ block xs = mconcat [ drawAt (line,0) x | (line,x) <- zip [0..] xs ]
 --      Haskell
 --       World!
 --         :)
-centered :: Sliceable t => t -> Render t
-centered t = t <$ moveLeft ((length t - 1) `div` 2)
+centered :: Sliceable t => Render t -> Render t
+centered t = case boundingBox t of
+    Nothing -> mempty
+    Just ((y1,x1),(y2,x2)) -> move ((y1-y2) `div` 2, (x1-x2) `div` 2) >> t
 
 shadow :: (t -> t) -> t -> Render t
 shadow style contents = (drawAt (-1,-1) $ style contents) <> return contents
+
+type BoundingBox = ((Int,Int),(Int,Int))
 
 -- | Computes the bounding box of a Render
 --
 -- >>> boundingBox $ move (100, 100) >> block ["Hello","World"]
 -- ((100,100),(102,105))
-boundingBox :: Sliceable t => Render t -> ((Int,Int),(Int,Int))
-boundingBox t = case nonEmpty (toChunks t) of
-                    Nothing -> ((0,0),(0,0))
-                    Just chunks -> let (Min ymin, Min xmin, Max ymax, Max xmax) = 
-                                        sconcat . fmap (\(t,(y,x)) -> (Min y, Min x, Max (y+1), Max (x+length t))) $ chunks
-                                   in ((ymin,xmin),(ymax,xmax))
+boundingBox :: Sliceable t => Render t -> Maybe BoundingBox
+boundingBox = fmap boundaries . nonEmpty . toChunks where
+                boundaries chunks = let (Min ymin, Min xmin, Max ymax, Max xmax) = 
+                                         sconcat . fmap (\(t,(y,x)) -> (Min y, Min x, Max (y+1), Max (x+length t))) $ chunks
+                                     in ((ymin,xmin),(ymax,xmax))
 
--- | Draw a solid box around a Render, without the Render itself. Useful if
--- you need to give a different style to the box.
+-- | Draw different types of configurable shapes at a boundingbox
+atBoundingBox :: (IsString t, Sliceable t) => (BoundingBox -> Render t) -> Render t -> Render t
+atBoundingBox f t = case boundingBox t of
+             Nothing -> mempty
+             Just b -> t <|> f b
+
+-- | Draw a hollow square
 -- Examples:
 -- printChunks $ 
-box :: (IsString t, Sliceable t) => Render t -> Render t
-box t = let ((y1,x1),(y2,x2)) = boundingBox t 
-         in line [(y1-1,x1-1),(y1-1,x2),(y2,x2),(y2,x1-1),(x1-1,y1-1)]
+edge :: (IsString t) => BoundingBox -> Render t
+edge ((y1,x1),(y2,x2)) = line [(y1-1,x1-1),(y1-1,x2),(y2,x2),(y2,x1-1),(x1-1,y1-1)]
 
 
--- | Draw a render with a solid bounding box around.
--- Equivalent to @box t <> t@
+
+-- | Draw a solid box
+box :: (IsString t) => BoundingBox -> Render t
+box = styledBox ["+-+","| |","+-+"]
+
+-- | Draw a solid box, with a given arbirary style
 --
--- >>> printChunks $ boxed ((move (4,7) >> boxed (boxed (return "Haskell"))) <> (move (2,2) >> boxed (return "Hello")))
+-- >>> printChunks $ styledBox ["/-+","|.|","+-/"] ((2,2),(6,6))
+-- 
+--  /----+
+--  |....|
+--  |....|
+--  |....|
+--  |....|
+--  +----/
+styledBox :: (IsString t) => [String] -> BoundingBox -> Render t
+styledBox [[a,b,c],[d,e,f],[g,h,i]]
+          ((y1,x1),(y2,x2)) = 
+                            mconcat    ([(drawAt (y1-1,x1') bar)] ++
+                                        [ drawAt (y,x1') mid  | y <- [y1..(y2-1) ]] ++
+                                        [(drawAt (y2,x1') low)]) where
+                                x1' = x1 - 1
+                                bar = fromString $ a : replicate (x2-x1) b ++ [c]
+                                mid = fromString $ d : replicate (x2-x1) e ++ [f]
+                                low = fromString $ g : replicate (x2-x1) h ++ [i]
+
+
+
+-- | Draw a render with a solid edge around.
+-- 
+--
+-- >>> printChunks $ edged ((move (4,7) >> boxed (boxed (return "Haskell"))) <> (move (2,2) >> boxed (return "Hello")))
 -- +---------------+
 -- |+-----+        |
 -- ||Hello|-------+|
@@ -171,17 +210,40 @@ box t = let ((y1,x1),(y2,x2)) = boundingBox t
 -- |    |+-------+||
 -- |    +---------+|
 -- +---------------+
-boxed :: (IsString t, Sliceable t) => Render t -> Render t
-boxed t = box t <> t
+edged :: (IsString t, Sliceable t) => Render t -> Render t
+edged t = atBoundingBox edge t <> t
 
--- | Split a chunk in order to remove transparent parts matching a predicate
-transparent :: Transparent t => (Elem t -> Bool) -> t -> [(Int,t)]
-transparent pred = trans' 0 where
+-- | Draw a solid box under the render
+-- >>> printChunks $ line [(0,0),(12,12)] <> boxed  ( drawAt (8,2) "Hello" <> drawAt (3,6) "World")
+-- +
+--  \
+--  +---------+
+--  |    World|
+--  |         |
+--  |         |
+--  |         |
+--  |         |
+--  |Hello    |
+--  +---------+
+--           \
+--            \
+--             +
+boxed :: (IsString t, Sliceable t) => Render t -> Render t
+boxed t = atBoundingBox box t <> t
+
+-- | Split a chunk in order to remove transparent parts matching a predicate.
+--
+-- >>> printChunks $ pure "__________________________" <> transparent (== ' ') "    Hello World ! !  :)"
+-- ____Hello_World_!_!__:)___
+transparent :: Transparent t => (Elem t -> Bool) -> t -> Render t
+transparent pred = fromChunks . trans' 0 where
     trans' a xs = let (blanks, rest) = breakTransparent (not.pred) xs
                       (nonblanks, rest') = breakTransparent (pred) rest
-                      lb = length blanks
-                      lnb = length nonblanks
-                  in (lb, nonblanks) : trans' (lb+lnb) rest'
+                      skip = length blanks
+                      len = skip + length nonblanks
+                  in if len > 0
+                        then (nonblanks, (0,a+skip)) : trans' (a+len) rest'
+                        else []
 
 -- | Actually performs the rendering, by slicing and padding the chunks in the Render
 -- to output lists of contiguous chunks
