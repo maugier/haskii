@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Safe, TypeFamilies  #-}
 
 {-|
 Module      : Haskii.Text
@@ -26,6 +26,10 @@ instance Sliceable Text where
 
 instance Paddable Text where
     padding n = T.replicate n (T.singleton ' ')
+
+instance Transparent Text where
+    type Elem Text = Char
+    breakTransparent = T.break
 
 -- | Splits a piece of text into several lines, and render them
 -- | under each other, left-aligning their start location

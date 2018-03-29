@@ -1,3 +1,5 @@
+{-# Language FlexibleInstances, TypeFamilies #-}
+
 {-|
 Module      : Haskii.Rainbow
 Description : Rendering over Rainbow chunks
@@ -23,7 +25,8 @@ import qualified Data.ByteString as BS
 import Data.ByteString (ByteString)
 import Haskii
 import Haskii.Types
-import Lens.Simple (view, over)
+import Haskii.Internal.Pair
+import Lens.Simple (view, over, set)
 import Prelude hiding (take,drop,length)
 import Rainbow (Chunk, Renderable, chunk)
 import Rainbow.Types (yarn)
@@ -36,6 +39,11 @@ instance Sliceable a => Sliceable (Chunk a) where
 
 instance Paddable a => Paddable (Chunk a) where
     padding = chunk . padding
+
+instance Transparent a => Transparent (Chunk a) where
+    type Elem (Chunk a) = Elem a
+    breakTransparent pred = getPair . yarn (Pair . breakTransparent pred)
+    
 
 type RenderMode a = (Chunk a -> [ByteString] -> [ByteString])
 

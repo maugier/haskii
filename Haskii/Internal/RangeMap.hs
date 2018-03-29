@@ -104,7 +104,13 @@ squash = toList . fromList
 pad :: Paddable r => [(Int,r)] -> [r]
 pad = pad' 0 . squash where
     pad' _ [] = []
-    pad' n ((o,x):xs) = let rest = x : pad' (o + length x) xs in if (o-n) > 0 then padding (o-n) : rest else rest
+    pad' n ((o,x):xs) = let rest = pad' (o + length x) xs 
+                            p = o - n
+                         in case compare p 0 of
+                            LT -> drop (-p) x : rest
+                            EQ -> x : rest
+                            GT -> padding p : x : rest
+                              
 
 instance Show r => Show (RangeMap r) where
     show rm = "fromList " ++ show (toList rm)

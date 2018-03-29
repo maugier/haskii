@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Safe, TypeFamilies, FlexibleInstances #-}
 {-|
  - Module      : Haskii.Types
  - Description : Haskell Ascii Art
@@ -20,8 +20,29 @@ import Data.String
 import Data.Monoid
 import Data.Semigroup
 
--- | A collection of drawable objects of type `t`, with assorted 2d coordinates.
+-- | The core datatype of this library. It consists of a Writer monad,
+-- used to sequence relative movements in a 2d coordinate system,
+-- and a List monad for combining multiple layers of drawing.
+--
+-- This is not a stateful monad; sequencing Renders with (>>) 
+-- does not combine the drawings. Use the `Monoid` instance for that.
+--
+-- Rather, you can bind monadic functions to split an abstract object
+-- into several smaller components, relative to a common reference position.
+-- Once you've split your abstract drawing into chunks of strings or text,
+-- you can perform the actual rendering.
 newtype Render t = Render { runRender :: WriterT (Sum Int,Sum Int) [] t }
+
+-- | Unwraps the Render newtype to a lazy list of chunks with positions.
+toChunks :: Render t -> [(t,(Int,Int))]
+toChunks = map (\(t,(Sum y,Sum x)) -> (t,(y,x))) . runWriterT . runRender
+
+-- | Wraps a list of chunks into a Render.
+fromChunks :: [(t,(Int,Int))] -> Render t
+fromChunks = Render . WriterT . map (\(t,(y,x)) -> (t,(Sum y,Sum x)))
+
+instance Show t => Show (Render t) where
+    show = ("fromChunks " ++) . show . toChunks
 
 instance Functor Render where
     fmap f (Render m) = Render (fmap f m)
@@ -39,7 +60,7 @@ instance Alternative Render where
     Render a <|> Render b = Render (a <|> b)
 
 
--- | `mplus` combines rendering of several elements.
+-- | `mplus` obeys the left-identity law, not the left-catch law
 instance MonadPlus Render where
     mzero = empty
     mplus = (<|>)
@@ -60,23 +81,31 @@ class Sliceable t where
 
 -- | When working with lists, which element should be used by the Paddable instance.
 -- | Basically a hack to work around OverlappingInstances.
-class Transparent t where
-    transparent :: t
+class Blank t where
+    blank :: t
 
-instance Transparent Char where
-    transparent = ' '
+instance Blank Char where
+    blank = ' '
 
 -- | A datatype for which we know how to generate padding of a given length.
 class Sliceable t => Paddable t where
     padding :: Int -> t
+
+class Sliceable t => Transparent t where
+    type Elem t
+    breakTransparent :: (Elem t -> Bool) -> t -> (t,t)
 
 instance Sliceable [t] where
     take = Prelude.take
     drop = Prelude.drop
     length = Prelude.length
 
-instance Transparent t => Paddable [t] where
-    padding = flip Prelude.replicate transparent
+instance Eq t => Transparent [t] where
+    type Elem [t] = t
+    breakTransparent = Prelude.break
+
+instance (Eq t, Blank t) => Paddable [t] where
+    padding = flip Prelude.replicate blank
 
 instance IsString t => IsString (Render t) where
     fromString = return . fromString
