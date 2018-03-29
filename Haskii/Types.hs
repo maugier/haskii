@@ -24,7 +24,7 @@ import Data.Semigroup
 -- used to sequence relative movements in a 2d coordinate system,
 -- and a List monad for combining multiple layers of drawing.
 --
--- This is not a stateful monad; sequencing Renders with (>>) 
+-- This is not a stateful monad; sequencing Renders with `(>>)`
 -- does not combine the drawings. Use the `Monoid` instance for that.
 --
 -- Rather, you can bind monadic functions to split an abstract object
@@ -91,6 +91,8 @@ instance Blank Char where
 class Sliceable t => Paddable t where
     padding :: Int -> t
 
+-- | A datatype that we know how to break efficiently in chunks over a predicate.
+-- the removed parts will become transparent.
 class Sliceable t => Transparent t where
     type Elem t
     breakTransparent :: (Elem t -> Bool) -> t -> (t,t)
