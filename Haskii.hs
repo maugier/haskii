@@ -32,13 +32,16 @@ module Haskii
     , centered
     , line
     , shadow
-    , box
+    , transparent
+    -- * Various kinds of boxes
+    , BoundingBox
     , edge
-    , boxed
+    , box
+    , styledBox
     , edged
+    , boxed
     , boundingBox
     , atBoundingBox
-    , transparent
     ) where
 
 import Control.Monad.Writer
@@ -178,7 +181,7 @@ box = styledBox ["+-+","| |","+-+"]
 -- | Draw a solid box, with a given arbirary style
 --
 -- >>> printChunks $ styledBox ["/-+","|.|","+-/"] ((2,2),(6,6))
--- 
+-- <BLANKLINE>
 --  /----+
 --  |....|
 --  |....|
@@ -214,6 +217,7 @@ edged :: (IsString t, Sliceable t) => Render t -> Render t
 edged t = atBoundingBox edge t <> t
 
 -- | Draw a solid box under the render
+--
 -- >>> printChunks $ line [(0,0),(12,12)] <> boxed  ( drawAt (8,2) "Hello" <> drawAt (3,6) "World")
 -- +
 --  \
