@@ -9,8 +9,29 @@ module Haskii.Figlet
 import Control.Monad (guard)
 import qualified Data.Map as M
 import Data.Semigroup
+import Data.Monoid (mempty)
+import Data.Text (Text)
+import Haskii
+import Haskii.Text
 import Haskii.Types
 import Haskii.Figlet.Types
+import Haskii.Figlet.FLF
+
+
+figLetter :: FLF -> Char -> Render Text
+figLetter font char = case M.lookup char $ charData font of
+    Nothing -> mempty
+    Just ts -> move (- baseline font, 0) 
+            >> oneOf (zip [0..] ts) 
+            >>= \(y,(t,x)) -> drawAt (y,x) t
+   
+figString :: FLF -> String -> Render Text
+figString font = fig' where
+    fl = figLetter font
+    fig' [] = mempty
+    fig' (c:cs) = let l = fl c
+                      Just (_,(_,o)) = boundingBox l
+                   in l <> (move (0,o) >> fig' cs)
 
 
 horizontalRules = [ equalCharacter

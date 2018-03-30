@@ -1,6 +1,7 @@
 module Haskii.Figlet.Types where
 
 import qualified Data.Map as M
+import Data.Text (Text)
 
 data SmushRule = EqualCharacter
                | Underscore
@@ -20,7 +21,7 @@ data Layout = Layout { horizontalMode :: Mode
                      }
     deriving Show
                 
-type FigletChar = [[Maybe Char]]
+type FigletChar = [(Text,Int)]
 
 type CharMap = M.Map Char FigletChar
 

@@ -1,21 +1,31 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Haskii.Figlet.FLF (
-    FLF,
+{-|
+Module      : Haskii.Figlet.FLF
+Description : Parser for FIGlet Fonts
+Copyright   : (c) Maxime Augier, 2018
+License     : BSD3
+Maintainer  : max@xolus.net
+Stability   : experimental
 
-    ) where
+Loads and parses a FIGLet font.
+
+-}
+
+module Haskii.Figlet.FLF (load) where
 
 import Control.Applicative
-import Control.Monad (guard, replicateM, replicateM_)
-import qualified Data.ByteString as BS    
+import Control.Monad (guard, replicateM, replicateM_, forM)
 import Data.Bits
-import Data.Char (chr)
+import Data.Char (chr, ord)
 import qualified Data.Map as M
-import qualified Data.ByteString.Char8 as B8 
-import Data.Attoparsec.ByteString as A (Parser, skipWhile, string, take, takeTill,
-                                        takeWhile1, (<?>))
-import Data.Attoparsec.ByteString.Char8 (anyChar, char, decimal, endOfLine, hexadecimal,
-                                         isEndOfLine, signed, skipSpace)
+import Data.Maybe (isNothing, fromMaybe)
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
+import Data.Attoparsec.Text as A (Parser, anyChar, char, decimal, endOfLine, hexadecimal,
+                                          isEndOfLine, parseOnly, signed, skipSpace, 
+                                          skipWhile, string, take, takeTill, takeWhile1, (<?>))
 import Haskii.Figlet.Types
 
 
@@ -23,9 +33,9 @@ hdrInt :: Parser Int
 hdrInt = skipSpace >> decimal
 
 octal :: Parser Int
-octal = BS.foldl' step 0 `fmap` takeWhile1 isDigit_w8
-  where step a w = a * 8 + fromIntegral (w - 48)
-        isDigit_w8 w = (w - 48) <= 9
+octal = T.foldl' step 0 `fmap` takeWhile1 isOctal
+  where step a c = a * 8 + fromIntegral (ord c - ord '0')
+        isOctal c = c >= '0' && c <= '7'
 
 charCode :: Parser Char
 charCode = chr <$> signed (("0x" >> hexadecimal) <|>
@@ -51,23 +61,30 @@ fullLayoutP = do
     v <- decimal :: Parser Int
     return (FullSize, FullSize) -- TODO Implement this
 
+
+packLine :: [Maybe Char] -> (Text,Int)
+packLine xs = let (front, rest) = span isNothing xs
+                  middle = T.pack . map (fromMaybe ' ') . reverse . dropWhile isNothing . reverse
+               in (middle rest, length front)
+
 readCharacter :: (Char -> Maybe Char) -> Int -> Int -> Parser FigletChar
 readCharacter rmhs height maxlen =
-    do  first <- takeTill isEndOfLine <* endOfLine
-        (stop, body) <- case B8.uncons first of
+    do  head <- (takeTill isEndOfLine <* endOfLine) <?> "first line"
+        (first, stop) <- case T.unsnoc head of
             Nothing -> fail "Empty line inside character"
             Just ok -> return ok
 
-        let width = BS.length body
-        guard (width <= maxlen)
-            <?> "Character too large"
+        guard (T.length first <= maxlen)
+            <?> "Character too wide"
 
-        let line = A.take width <* (char stop >> endOfLine)
+        let line = (A.takeTill (stop ==)) <* (char stop >> endOfLine)
         middle <- replicateM (height-2) line
+                   <?> "middle section"
 
-        last <- A.take width <* (char stop >> char stop >> endOfLine)
+        last <- (A.takeTill (stop ==) <* (char stop >> char stop >> endOfLine))
+                   <?> "final line"
 
-        return . map (map rmhs . B8.unpack) $ first : middle ++ [last]
+        return . map (packLine . map rmhs . T.unpack) $ first : middle ++ [last]
 
     
 
@@ -89,7 +106,7 @@ mandatoryChars = map chr $ [32..126] ++ [196,214,220,228,246,252,223]
 flf :: Parser FLF
 flf = do
         -- Header starts here
-        ("flf2a" <|> "tlf2a")
+        ("flf2a" <|> "tlf2a") <?> "FLF magic"
         hb <- anyChar
 
         height <- hdrInt
@@ -110,12 +127,13 @@ flf = do
         skipLine
 
         -- skip comments section
-        replicateM_ comments skipLine
+        replicateM_ comments skipLine <?> "comment section"
 
-        let rdc = readCharacter (switchHardBlank hb) height maxlen
+        let rdc = readCharacter (switchHardBlank hb) height maxlen <?> "character"
 
-        cdata <- zip mandatoryChars <$> many rdc
-        extra <- many $ tagged rdc
+        cdata <- forM mandatoryChars $ \c -> ((\r -> (c,r)) <$> rdc) 
+                    <?> "Load character " ++ show c
+        extra <- (many $ tagged rdc) <?> "extra characters"
 
         return $ FLF baseline
                      oldl
@@ -124,4 +142,5 @@ flf = do
                      cdtCount
                      (M.fromList $ cdata ++ extra)
 
-
+load :: FilePath -> IO (Either String FLF)
+load = (parseOnly flf <$>) . T.readFile
