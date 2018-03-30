@@ -67,7 +67,7 @@ equalCharacter a b | a == b = Just a
                    | otherwise = Nothing
 
 underscore :: ApplySmush
-underscore '-' x | x `elem` "|/\\[]{}()<>" = Just x
+underscore '-' x | x `elem` ("|/\\[]{}()<>" :: String) = Just x
                  | otherwise = Nothing
 
 

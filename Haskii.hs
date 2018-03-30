@@ -169,7 +169,7 @@ atBoundingBox f t = case boundingBox t of
 
 -- | Draw a hollow square
 edge :: (IsString t) => BoundingBox -> Render t
-edge ((y1,x1),(y2,x2)) = line [(y1-1,x1-1),(y1-1,x2),(y2,x2),(y2,x1-1),(x1-1,y1-1)]
+edge ((y1,x1),(y2,x2)) = line [(y1-1,x1-1),(y1-1,x2),(y2,x2),(y2,x1-1),(y1-1,x1-1)]
 
 
 
