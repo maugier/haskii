@@ -167,8 +167,6 @@ atBoundingBox f t = case boundingBox t of
              Just b -> t <|> f b
 
 -- | Draw a hollow square
--- Examples:
--- printChunks $ 
 edge :: (IsString t) => BoundingBox -> Render t
 edge ((y1,x1),(y2,x2)) = line [(y1-1,x1-1),(y1-1,x2),(y2,x2),(y2,x1-1),(x1-1,y1-1)]
 
@@ -204,7 +202,7 @@ styledBox [[a,b,c],[d,e,f],[g,h,i]]
 -- | Draw a render with a solid edge around.
 -- 
 --
--- >>> printChunks $ edged ((move (4,7) >> boxed (boxed (return "Haskell"))) <> (move (2,2) >> boxed (return "Hello")))
+-- >>> printChunks $ edged ((move (4,7) >> edged (edged (return "Haskell"))) <> (move (2,2) >> edged (return "Hello")))
 -- +---------------+
 -- |+-----+        |
 -- ||Hello|-------+|

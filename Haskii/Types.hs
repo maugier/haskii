@@ -1,15 +1,15 @@
 {-# LANGUAGE Safe, TypeFamilies, FlexibleInstances #-}
 {-|
- - Module      : Haskii.Types
- - Description : Haskell Ascii Art
- - Copyright   : (c) Maxime Augier, 2018
- - License     : BSD3
- - Maintainer  : max@xolus.net
- - Stability   : experimental
- -
- - Core definitions, including the Render monad
- -
- - -}
+Module      : Haskii.Types
+Description : Haskell Ascii Art
+Copyright   : (c) Maxime Augier, 2018
+License     : BSD3
+Maintainer  : max@xolus.net
+Stability   : experimental
+
+Core definitions, including the Render monad
+
+-}
 
 module Haskii.Types where
 
