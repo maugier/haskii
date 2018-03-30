@@ -1,6 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Haskii.Figlet.FLF where
+module Haskii.Figlet.FLF (
+    FLF,
+
+    ) where
 
 import Control.Applicative
 import Control.Monad (guard, replicateM, replicateM_)

@@ -13,9 +13,12 @@ data SmushRule = EqualCharacter
 type ApplySmush = (Char -> Char -> Maybe Char)
 
 data Mode = FullSize | Kerning | Smushing [SmushRule]
+    deriving (Show)
+
 data Layout = Layout { horizontalMode :: Mode
                      , verticalMode :: Mode
                      }
+    deriving Show
                 
 type FigletChar = [[Maybe Char]]
 
@@ -29,4 +32,4 @@ data FLF = FLF {
     fullLayout :: Maybe (Mode, Mode),
     codetagCount :: Maybe Int,
     charData :: CharMap
-}
+} deriving (Show)
