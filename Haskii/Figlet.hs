@@ -1,5 +1,7 @@
 module Haskii.Figlet
-    ( Mode
+    ( CharMap
+    , Mode(..)
+    , FigletChar
     , SmushRule
     , horizontalRules
     ) where
@@ -8,18 +10,8 @@ import Control.Monad (guard)
 import qualified Data.Map as M
 import Data.Semigroup
 import Haskii.Types
+import Haskii.Figlet.Types
 
-type SmushRule = (Char -> Char -> Maybe Char)
-
-data Mode = FullSize | Kerning | Smushing [SmushRule]
-
-data Layout = Layout { horizontalMode :: Mode
-                     , verticalMode :: Mode
-                     }
-                
-type FigletChar = Render String
-
-type CharMap = M.Map Char FigletChar
 
 horizontalRules = [ equalCharacter
                   , underscore
@@ -29,17 +21,17 @@ horizontalRules = [ equalCharacter
                   , horizontal
                   ]
 
-equalCharacter :: SmushRule
+equalCharacter :: ApplySmush
 equalCharacter a b | a == b = Just a
                    | otherwise = Nothing
 
-underscore :: SmushRule
+underscore :: ApplySmush
 underscore '-' x | x `elem` "|/\\[]{}()<>" = Just x
                  | otherwise = Nothing
 
 
 
-hierarchy :: SmushRule
+hierarchy :: ApplySmush
 hierarchy a b = do
     a' <- classmap a
     b' <- classmap b
@@ -59,19 +51,19 @@ hierarchy a b = do
         classmap _   = Nothing
 
 
-opposite :: SmushRule
+opposite :: ApplySmush
 opposite a b | a > b = opposite b a
 opposite '[' ']' = Just '|'
 opposite '{' '}' = Just '|'
 opposite '(' ')' = Just '|'
 opposite '_' '-' = Nothing
 
-bigX :: SmushRule
+bigX :: ApplySmush
 bigX '/' '\\' = Just '|'
 bigX '\\' '/' = Just 'Y'
 bigX '>' '<' = Just 'X'
 
-horizontal :: SmushRule
+horizontal :: ApplySmush
 horizontal '-' '_' = Just '='
 horizontal '_' '-' = Just '='
 horizontal _ _ = Nothing
