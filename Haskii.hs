@@ -42,6 +42,7 @@ module Haskii
     , boxed
     , boundingBox
     , atBoundingBox
+    , cutout
     ) where
 
 import Control.Monad.Writer
@@ -238,14 +239,30 @@ boxed t = atBoundingBox box t <> t
 -- >>> printChunks $ pure "__________________________" <> transparent (== ' ') "    Hello World ! !  :)"
 -- ____Hello_World_!_!__:)___
 transparent :: Transparent t => (Elem t -> Bool) -> t -> Render t
-transparent pred = fromChunks . trans' 0 where
-    trans' a xs = let (blanks, rest) = breakTransparent (not.pred) xs
-                      (nonblanks, rest') = breakTransparent (pred) rest
-                      skip = length blanks
-                      len = skip + length nonblanks
-                  in if len > 0
-                        then (nonblanks, (0,a+skip)) : trans' (a+len) rest'
-                        else []
+transparent pred = fromChunks . map snd . filter fst . tagTrans pred
+--transparent = undefined
+
+tagTrans :: Transparent t => (Elem t -> Bool) -> t -> [(Bool,(t,(Int,Int)))]
+tagTrans pred = tagTrans' 0 where
+    tagTrans' a xs = let (blanks, rest) = breakTransparent (not.pred) xs
+                         (nonBlanks, rest') = breakTransparent (pred) rest
+                         skip = length blanks
+                         nbl = length nonBlanks
+                         blankChunk = (False,(blanks, (0,a)))
+                         nonBlankChunk = (True,(nonBlanks, (0,a+skip)))
+                     in case (skip > 0, nbl > 0) of
+                             (False   , False) -> []
+                             (True    , False) -> [blankChunk]
+                             (False   , True)  -> [nonBlankChunk]
+                             (True    , True) -> blankChunk : nonBlankChunk 
+                                                 : tagTrans' (a+skip+nbl) rest'
+
+
+
+-- | Cut out the transparent pieces off the edge
+cutout :: Transparent t => (Elem t -> Bool) -> t -> Render t
+cutout pred = fromChunks . map snd . trimEdges . tagTrans pred where
+    trimEdges = reverse . dropWhile (not.fst) . reverse . dropWhile (not.fst)
 
 -- | Actually performs the rendering, by slicing and padding the chunks in the Render
 -- to output lists of contiguous chunks
@@ -259,6 +276,7 @@ renderChunks object = paddedScreen 0 lineBuffer where
     lineBuffer = IM.toList . IM.map pad . IM.fromListWith (++) $ inputLines
     paddedScreen y [] = []
     paddedScreen y ((y',l):rest) = replicate (y'-y) [] ++ (l : paddedScreen (y'+1) rest)
+
 
 -- | A shortcut to write a Render String directly to stdout
 printChunks :: Render String -> IO ()
