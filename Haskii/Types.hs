@@ -87,6 +87,9 @@ class Blank t where
 instance Blank Char where
     blank = ' '
 
+instance Blank (Maybe t) where
+    blank = Nothing
+
 -- | A datatype for which we know how to generate padding of a given length.
 class Sliceable t => Paddable t where
     padding :: Int -> t
