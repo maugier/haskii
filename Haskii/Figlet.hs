@@ -18,6 +18,9 @@ module Haskii.Figlet
     , FigletChar
     , SmushRule
     , horizontalRules
+    , load
+    , figLetter
+    , figString
     ) where
 
 import Control.Monad (guard)

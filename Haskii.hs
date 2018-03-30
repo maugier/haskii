@@ -31,8 +31,8 @@ module Haskii
     , block
     , centered
     , line
-    , shadow
     , transparent
+    , shadow
     -- * Various kinds of boxes
     , BoundingBox
     , edge

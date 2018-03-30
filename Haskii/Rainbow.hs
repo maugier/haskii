@@ -14,6 +14,7 @@ provided by the 'Rainbow' module.
 
 module Haskii.Rainbow
     ( RenderMode
+    , shadow
     , color0
     , color8
     , color256
@@ -23,7 +24,8 @@ module Haskii.Rainbow
 
 import qualified Data.ByteString as BS
 import Data.ByteString (ByteString)
-import Haskii
+import Data.Semigroup ((<>))
+import Haskii hiding (shadow)
 import Haskii.Types
 import Haskii.Internal.Pair
 import Lens.Simple (view, over, set)
@@ -51,6 +53,9 @@ color0, color8, color256 :: Renderable a => RenderMode a
 color0 = R.toByteStringsColors0
 color8 = R.toByteStringsColors8
 color256 = R.toByteStringsColors256
+
+shadow :: Render (Chunk t) -> Render (Chunk t)
+shadow thing = (move (-1,1) >> fmap R.faint thing) <> (fmap R.bold thing)
 
 -- | Perform the rendering of Rainbow chunks, outputting a
 -- | list of ByteString chunks suitable for printing
