@@ -1,3 +1,17 @@
+{-|
+Module      : Haskii.Figlet
+Description : FIGlet Renderer
+Copyright   : (c) Maxime Augier, 2018
+License     : BSD3
+Maintainer  : max@xolus.net
+Stability   : experimental
+
+A native Haskell implementation that can read .flf files
+and generate Figlet text inside a Render monad
+
+-}
+
+
 module Haskii.Figlet
     ( CharMap
     , Mode(..)
@@ -17,7 +31,11 @@ import Haskii.Types
 import Haskii.Figlet.Types
 import Haskii.Figlet.FLF
 
-
+-- | Draw a single character at a given location.
+-- The height of the character is adjusted according to the
+-- baseline information contained in the font. The current 
+-- positon determines the baseline of the character, not its
+-- upper left corner.
 figLetter :: FLF -> Char -> Render Text
 figLetter font char = case M.lookup char $ charData font of
     Nothing -> mempty
@@ -25,6 +43,8 @@ figLetter font char = case M.lookup char $ charData font of
             >> oneOf (zip [0..] ts) 
             >>= \(y,(t,x)) -> drawAt (y,x) t
    
+-- | Draw a string. For now we only support Full Width rendering.
+--
 figString :: FLF -> String -> Render Text
 figString font = fig' where
     fl = figLetter font

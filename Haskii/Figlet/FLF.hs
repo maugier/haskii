@@ -142,5 +142,6 @@ flf = do
                      cdtCount
                      (M.fromList $ cdata ++ extra)
 
+-- | Loads a font from an .flf file
 load :: FilePath -> IO (Either String FLF)
 load = (parseOnly flf <$>) . T.readFile
