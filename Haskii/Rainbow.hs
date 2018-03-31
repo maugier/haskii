@@ -14,17 +14,19 @@ provided by the 'Rainbow' module.
 
 module Haskii.Rainbow
     ( RenderMode
-    , shadow
-    , color0
-    , color8
-    , color256
+    , modeBW
+    , mode8c
+    , mode256c
     , renderWith
-    , putStrWith )
+    , putStrWith
+    , bow )
     where
 
 import qualified Data.ByteString as BS
 import Data.ByteString (ByteString)
+import Data.Foldable (fold)
 import Data.Semigroup ((<>))
+import Data.String (IsString, fromString)
 import Haskii hiding (shadow)
 import Haskii.Types
 import Haskii.Internal.Pair
@@ -46,16 +48,19 @@ instance Transparent a => Transparent (Chunk a) where
     type Elem (Chunk a) = Elem a
     breakTransparent pred = getPair . yarn (Pair . breakTransparent pred)
     
+instance IsString a => IsString (Chunk a) where
+    fromString = chunk . fromString
 
 type RenderMode a = (Chunk a -> [ByteString] -> [ByteString])
 
-color0, color8, color256 :: Renderable a => RenderMode a
-color0 = R.toByteStringsColors0
-color8 = R.toByteStringsColors8
-color256 = R.toByteStringsColors256
+modeBW, mode8c, mode256c :: Renderable a => RenderMode a
+modeBW = R.toByteStringsColors0
+mode8c = R.toByteStringsColors8
+mode256c = R.toByteStringsColors256
 
-shadow :: Render (Chunk t) -> Render (Chunk t)
-shadow thing = (move (-1,1) >> fmap R.faint thing) <> (fmap R.bold thing)
+bow :: [Chunk a -> b] -> (Int,Int) -> Render a -> Render b
+bow colors shift = fold . reverse . zipWith (fmap) colors . iterate (move shift >>) . fmap chunk
+
 
 -- | Perform the rendering of Rainbow chunks, outputting a
 -- | list of ByteString chunks suitable for printing
