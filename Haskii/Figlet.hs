@@ -45,6 +45,7 @@ figLetter font char = case M.lookup char $ charData font of
     Just ts -> move (- baseline font, 0) 
             >> oneOf (zip [0..] ts) 
             >>= \(y,(t,x)) -> drawAt (y,x) t
+            >>= transparent
    
 -- | Draw a string. For now we only support Full Width rendering.
 --
