@@ -250,12 +250,12 @@ tagTrans pred = tagTrans' 0 where
                          nbl = length nonBlanks
                          blankChunk = (False,(blanks, (0,a)))
                          nonBlankChunk = (True,(nonBlanks, (0,a+skip)))
+                         rec = tagTrans' (a+skip+nbl) rest'
                      in case (skip > 0, nbl > 0) of
                              (False   , False) -> []
-                             (True    , False) -> [blankChunk]
-                             (False   , True)  -> [nonBlankChunk]
-                             (True    , True) -> blankChunk : nonBlankChunk 
-                                                 : tagTrans' (a+skip+nbl) rest'
+                             (True    , False) -> blankChunk : rec
+                             (False   , True)  -> nonBlankChunk : rec
+                             (True    , True) -> blankChunk : nonBlankChunk : rec
 
 
 
