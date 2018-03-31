@@ -167,12 +167,22 @@ boundingBox = fromMaybe ((0,0),(0,0)) . fmap boundaries . nonEmpty . toChunks wh
 atBoundingBox :: (Sliceable t) => (BoundingBox -> Render t) -> Render t -> Render t
 atBoundingBox f t = t <> f (boundingBox t)
 
+
+-- | Juxtapose two renders horizontally, such that their bounding boxes are touching
 (<||>) :: Sliceable t => Render t -> Render t -> Render t
 a <||> b = a <> (move (0, snd . snd . boundingBox $ a) >> b)
 
-
+-- | Juxtapose two renders vertically
 (<-->) :: Sliceable t => Render t -> Render t -> Render t
 a <--> b = a <> (move (fst . snd . boundingBox $ a, 0) >> b)
+
+-- | Kern two renders
+(<~>) :: Sliceable t => Render t -> Render t -> Render t
+a <~> b = a <> (move (0,x) >> b) where
+    leftBorder  = IM.fromListWith (<>) [ (y, Max (x + length t)) | (t,(y,x)) <- toChunks a ] 
+    rightBorder = IM.fromListWith (<>) [ (y, Min x)              | (t,(y,x)) <- toChunks b ]
+    Max x = mconcat . map snd . IM.toList $ IM.intersectionWith (\(Max l) (Min r) -> Max (l - r)) leftBorder rightBorder
+
 
 -- | Draw a hollow square
 edge :: (IsString t) => BoundingBox -> Render t
