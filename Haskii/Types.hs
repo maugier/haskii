@@ -17,6 +17,7 @@ import Control.Applicative
 import Control.Monad.Writer
 import Control.Monad
 import Data.String
+import Data.Maybe (isNothing)
 import Data.Monoid
 import Data.Semigroup
 
@@ -81,14 +82,17 @@ class Sliceable t where
 
 -- | When working with lists, which element should be used by the Paddable instance.
 -- | Basically a hack to work around OverlappingInstances.
-class Blank t where
+class  Blank t where
     blank :: t
+    isBlank :: t -> Bool
 
 instance Blank Char where
     blank = ' '
+    isBlank = (' ' ==)
 
 instance Blank (Maybe t) where
     blank = Nothing
+    isBlank = isNothing
 
 -- | A datatype for which we know how to generate padding of a given length.
 class Sliceable t => Paddable t where

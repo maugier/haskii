@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe, OverloadedStrings #-}
+{-# LANGUAGE Safe, FlexibleContexts, OverloadedStrings #-}
 
 {-|
 Module      : Haskii
@@ -32,6 +32,7 @@ module Haskii
     , centered
     , line
     , transparent
+    , transparentWith
     , shadow
     -- * Various kinds of boxes
     , BoundingBox
@@ -43,10 +44,13 @@ module Haskii
     , boundingBox
     , atBoundingBox
     , cutout
+    , (<||>)
+    , (<-->)
     ) where
 
 import Control.Monad.Writer
 import Control.Applicative
+import Data.Maybe (fromMaybe)
 import Data.Monoid
 import Data.Semigroup (Min(..),Max(..),sconcat)
 import Data.List.NonEmpty (nonEmpty)
@@ -142,9 +146,7 @@ block xs = mconcat [ drawAt (line,0) x | (line,x) <- zip [0..] xs ]
 --       World!
 --         :)
 centered :: Sliceable t => Render t -> Render t
-centered t = case boundingBox t of
-    Nothing -> mempty
-    Just ((y1,x1),(y2,x2)) -> move ((y1-y2) `div` 2, (x1-x2) `div` 2) >> t
+centered t = let ((y1,x1),(y2,x2)) = boundingBox t in move ((y1-y2) `div` 2, (x1-x2) `div` 2) >> t
 
 shadow :: (t -> t) -> t -> Render t
 shadow style contents = (drawAt (-1,-1) $ style contents) <> return contents
@@ -155,17 +157,22 @@ type BoundingBox = ((Int,Int),(Int,Int))
 --
 -- >>> boundingBox $ move (100, 100) >> block ["Hello","World"]
 -- ((100,100),(102,105))
-boundingBox :: Sliceable t => Render t -> Maybe BoundingBox
-boundingBox = fmap boundaries . nonEmpty . toChunks where
+boundingBox :: Sliceable t => Render t -> BoundingBox
+boundingBox = fromMaybe ((0,0),(0,0)) . fmap boundaries . nonEmpty . toChunks where
                 boundaries chunks = let (Min ymin, Min xmin, Max ymax, Max xmax) = 
                                          sconcat . fmap (\(t,(y,x)) -> (Min y, Min x, Max (y+1), Max (x+length t))) $ chunks
                                      in ((ymin,xmin),(ymax,xmax))
 
 -- | Draw different types of configurable shapes at a boundingbox
-atBoundingBox :: (IsString t, Sliceable t) => (BoundingBox -> Render t) -> Render t -> Render t
-atBoundingBox f t = case boundingBox t of
-             Nothing -> mempty
-             Just b -> t <|> f b
+atBoundingBox :: (Sliceable t) => (BoundingBox -> Render t) -> Render t -> Render t
+atBoundingBox f t = t <> f (boundingBox t)
+
+(<||>) :: Sliceable t => Render t -> Render t -> Render t
+a <||> b = a <> (move (0, snd . snd . boundingBox $ a) >> b)
+
+
+(<-->) :: Sliceable t => Render t -> Render t -> Render t
+a <--> b = a <> (move (fst . snd . boundingBox $ a, 0) >> b)
 
 -- | Draw a hollow square
 edge :: (IsString t) => BoundingBox -> Render t
@@ -236,11 +243,15 @@ boxed t = atBoundingBox box t <> t
 
 -- | Split a chunk in order to remove transparent parts matching a predicate.
 --
--- >>> printChunks $ pure "__________________________" <> transparent (== ' ') "    Hello World ! !  :)"
+-- >>> printChunks $ pure "__________________________" <> transparent "    Hello World ! !  :)"
 -- ____Hello_World_!_!__:)___
-transparent :: Transparent t => (Elem t -> Bool) -> t -> Render t
-transparent pred = fromChunks . map snd . filter fst . tagTrans pred
---transparent = undefined
+transparent :: (Transparent t, Blank (Elem t)) => t -> Render t
+transparent = transparentWith isBlank
+
+-- | Same as `transparent`, but with an arbitrary predicate on the element type
+--
+transparentWith :: Transparent t => (Elem t -> Bool) -> t -> Render t
+transparentWith pred = fromChunks . map snd . filter fst . tagTrans pred
 
 tagTrans :: Transparent t => (Elem t -> Bool) -> t -> [(Bool,(t,(Int,Int)))]
 tagTrans pred = tagTrans' 0 where

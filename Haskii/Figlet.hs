@@ -52,9 +52,7 @@ figString :: FLF -> String -> Render Text
 figString font = fig' where
     fl = figLetter font
     fig' [] = mempty
-    fig' (c:cs) = let l = fl c
-                      Just (_,(_,o)) = boundingBox l
-                   in l <> (move (0,o) >> fig' cs)
+    fig' (c:cs) = fl c <||> fig' cs
 
 
 horizontalRules = [ equalCharacter
