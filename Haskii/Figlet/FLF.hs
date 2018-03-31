@@ -15,6 +15,7 @@ Loads and parses a FIGLet font.
 module Haskii.Figlet.FLF (load) where
 
 import Control.Applicative
+import Control.Arrow (first, second)
 import Control.Monad (guard, replicateM, replicateM_, forM)
 import Data.Bits
 import Data.Char (chr, ord)
@@ -37,10 +38,10 @@ octal = T.foldl' step 0 `fmap` takeWhile1 isOctal
   where step a c = a * 8 + fromIntegral (ord c - ord '0')
         isOctal c = c >= '0' && c <= '7'
 
-charCode :: Parser Char
-charCode = chr <$> signed (("0x" >> hexadecimal) <|>
-                           ("0" >> octal)        <|>
-                           (decimal)              )
+charCode :: Parser Int
+charCode = signed (("0x" >> hexadecimal) <|>
+                   ("0" >> octal)        <|>
+                   (decimal)              )
 
 skipLine :: Parser ()
 skipLine = skipWhile (not . isEndOfLine) >> endOfLine
@@ -67,8 +68,9 @@ packLine xs = let (front, rest) = span isNothing xs
                   middle = T.pack . map (fromMaybe ' ') . reverse . dropWhile isNothing . reverse
                in (middle rest, length front)
 
-readCharacter :: (Char -> Maybe Char) -> Int -> Int -> Parser FigletChar
-readCharacter rmhs height maxlen =
+
+readCharBlock :: Int -> Int -> Parser [Text]
+readCharBlock height maxlen =
     do  head <- (takeTill isEndOfLine <* endOfLine) <?> "first line"
         (first, stop) <- case T.unsnoc head of
             Nothing -> fail "Empty line inside character"
@@ -84,11 +86,13 @@ readCharacter rmhs height maxlen =
         last <- (A.takeTill (stop ==) <* (char stop >> char stop >> endOfLine))
                    <?> "final line"
 
-        return . map (packLine . map rmhs . T.unpack) $ first : middle ++ [last]
+        return $ first : middle ++ [last]
 
-    
+translateCharBlock :: Char -> [Text] -> FigletChar
+translateCharBlock hardblank = map (packLine . map (switchHardBlank hardblank) . T.unpack)
 
-tagged :: Parser FigletChar -> Parser (Char,FigletChar)
+
+tagged :: Parser t -> Parser (Int,t)
 tagged p = do
             code <- charCode
             skipLine
@@ -129,18 +133,18 @@ flf = do
         -- skip comments section
         replicateM_ comments skipLine <?> "comment section"
 
-        let rdc = readCharacter (switchHardBlank hb) height maxlen <?> "character"
+        let rdc = readCharBlock height maxlen <?> "character"
 
-        cdata <- forM mandatoryChars $ \c -> ((\r -> (c,r)) <$> rdc) 
+        cdata <- forM mandatoryChars $ \c -> ((\r -> (c, r)) <$> rdc) 
                     <?> "Load character " ++ show c
-        extra <- (many $ tagged rdc) <?> "extra characters"
+        extra <- map (first chr) . filter ((>0) . fst) <$> (many $ tagged rdc) <?> "extra characters"
 
         return $ FLF baseline
                      oldl
                      direction
                      layout
                      cdtCount
-                     (M.fromList $ cdata ++ extra)
+                     (M.fromList . map (second (translateCharBlock hb)) $ cdata ++ extra)
 
 -- | Loads a font from an .flf file
 load :: FilePath -> IO (Either String FLF)
